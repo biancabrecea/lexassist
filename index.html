@@ -113,7 +113,7 @@
 <div class="app-shell">
   <main class="main" id="view-dosare">
     <header class="header" style="padding:0; margin-bottom:20px; background:transparent; border:none;">
-      <div class="header-logo">Lex.Assist - C.A. Bianca Brecea</div>
+      <div class="header-logo">Registru<span>.</span>Avocat</div>
       <button class="btn-new" onclick="openModal()">+ DOSAR NOU</button>
     </header>
 
@@ -271,6 +271,12 @@ function saveDosar() {
     });
 }
 
+function deleteDosar(id, nr) {
+    if (confirm(`Sigur vrei să ștergi dosarul ${nr || ''}?`)) {
+        db.ref('dosare_v1/' + id).remove();
+    }
+}
+
 // --- LOGICA UI (Identica cu a ta) ---
 function showTab(tab) {
     document.getElementById('view-dosare').classList.toggle('hidden', tab !== 'dosare');
@@ -321,26 +327,59 @@ function renderDosare() {
     if(currentFilter === 'ref-neterminat') filtered = filtered.filter(d => !d.ref_depus);
     else if(currentFilter === 'neincasate') filtered = filtered.filter(d => !d.incasat);
 
-    if(filtered.length === 0) { list.innerHTML = "<p style='text-align:center; color:var(--text3); margin-top:20px;'>Niciun dosar găsit.</p>"; return; }
+    if(filtered.length === 0) { 
+        list.innerHTML = "<p style='text-align:center; color:var(--text3); margin-top:20px;'>Niciun dosar găsit.</p>"; 
+        return; 
+    }
 
-    list.innerHTML = filtered.map((d, i) => {
-        // Trebuie sa gasim indexul original in array-ul 'dosare' pentru editare corecta
-        const originalIdx = dosare.findIndex(item => item.id === d.id);
-        return `
-        <div class="dosar-card ${!d.ref_depus ? 'alert-ref' : ''}" onclick="openModal(${originalIdx})">
+list.innerHTML = filtered.map((d, i) => {
+    const originalIdx = dosare.findIndex(item => item.id === d.id);
+    const nrCurat = d.nr ? d.nr.trim() : "";
+    const linkPortal = `https://portal.just.ro/SitePages/acasa.aspx?k=${encodeURIComponent(nrCurat)}`;
+
+    return `
+    <div class="dosar-card ${!d.ref_depus ? 'alert-ref' : ''}" style="position: relative;">
+        <div onclick="openModal(${originalIdx})">
             <div class="card-header">
                 <span class="card-nr">${d.nr || '---'}</span>
                 <div>
-                    ${!d.ref_depus ? '<span class="badge warning">⚠️ Referat Nedepus</span>' : '<span class="badge" style="color:var(--accent)">✓ Depus</span>'}
+                    ${!d.ref_depus ? '<span class="badge warning">⚠️ Referat</span>' : '<span class="badge" style="color:var(--accent)">✓ Depus</span>'}
                     <span class="badge" style="margin-left:5px; color:${d.incasat ? 'var(--accent)' : 'var(--red)'}">${d.onorariu || 0} RON</span>
                 </div>
             </div>
             <div class="card-client">${d.clients && d.clients.length ? d.clients.join(', ') : (d.client || 'Client...')}</div>
-            <div style="font-size:11px; color:var(--text2)">
-                ${d.instanta || ''} | <span style="color:var(--accent-text)">${d.tiponorariu === 'oficiu' ? 'OFICIU' : 'ALES'}</span>
+            <div style="font-size:11px; color:var(--text2); margin-bottom: 12px;">
+                ${d.instanta || ''}
             </div>
         </div>
-    `}).join('');
+
+        <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-start;">
+            <a href="${linkPortal}" target="_blank" rel="noopener noreferrer" 
+               style="display: inline-flex; align-items: center; padding: 6px 10px; 
+                      background: var(--accent-light); border: 1px solid var(--accent); 
+                      border-radius: 8px; color: var(--accent); text-decoration: none; 
+                      font-size: 10px; font-weight: 600; width: fit-content;">
+               🔍 PORTAL
+            </a>
+            
+            <button onclick="navigator.clipboard.writeText('${nrCurat}');"
+               style="display: inline-flex; align-items: center; padding: 6px 10px; 
+                      background: var(--surface2); border: 1px solid var(--border-mid); 
+                      border-radius: 8px; color: var(--text3); cursor: pointer; 
+                      font-size: 10px; width: fit-content;">
+               📋 COPY
+            </button>
+
+            <button onclick="event.stopPropagation(); deleteDosar('${d.id}', '${d.nr}')"
+				style="display: inline-flex; align-items: center; padding: 6px 10px; 
+					background: rgba(207, 102, 121, 0.1); border: 1px solid var(--red); 
+					border-radius: 8px; color: var(--red); cursor: pointer; 
+					font-size: 10px; font-weight: bold; margin-left: auto;">
+   ✕ ȘTERGE
+</button>
+        </div>
+    </div>
+`}).join('');
 }
 
 function calculateFinance() {
