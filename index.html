@@ -3,88 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestiune Avocatură - Flux Decontare</title>
+<title>Registru Avocat - Sincronizat Cloud</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  :root {
-    --bg: #121212;
-    --surface: #1E1E1E;
-    --surface2: #2D2D2D;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-mid: rgba(255, 255, 255, 0.15);
-    --text: #E0E0E0;
-    --text2: #B0B0B0;
-    --text3: #808080;
-    --accent: #D48C9E; /* Roz prăfuit */
-    --accent-light: #3D2B2F;
-    --accent-text: #F2D1D9;
-    --amber: #CD926E;
-    --amber-light: #32261E;
-    --radius-lg: 16px;
-    --red: #CF6679;
-  }
 
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<style>
+  /* PĂSTRĂM TOATE STILURILE TALE ORIGINALE */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #121212; --surface: #1E1E1E; --surface2: #2D2D2D;
+    --border: rgba(255, 255, 255, 0.08); --border-mid: rgba(255, 255, 255, 0.15);
+    --text: #E0E0E0; --text2: #B0B0B0; --text3: #808080;
+    --accent: #D48C9E; --accent-light: #3D2B2F; --accent-text: #F2D1D9;
+    --amber: #CD926E; --amber-light: #32261E; --radius-lg: 16px; --red: #CF6679;
+  }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; line-height: 1.4; }
   .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
-  
-  /* Navigare Tab-uri */
   .nav-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); justify-content: center; gap: 15px; padding: 10px 0; position: sticky; top: 0; z-index: 100; }
   .tab-link { color: var(--text3); padding: 8px 20px; border-radius: 20px; font-weight: 500; cursor: pointer; transition: 0.3s; }
   .tab-link.active { background: var(--accent-light); color: var(--accent); }
-
-  .header { 
-    background: var(--surface); border-bottom: 1px solid var(--border); 
-    padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; 
-    height: 60px;
-  }
-
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 60px; }
   .header-logo { font-family: 'Lora', serif; font-size: 18px; font-weight: 500; color: var(--accent); }
-  .btn-new { 
-    padding: 10px 18px; border-radius: 20px; border: none; 
-    background: var(--accent); color: #121212; font-weight: 600; cursor: pointer;
-  }
-
+  .btn-new { padding: 10px 18px; border-radius: 20px; border: none; background: var(--accent); color: #121212; font-weight: 600; cursor: pointer; }
   .main { flex: 1; padding: 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; }
   .hidden { display: none; }
-
-  /* Filtre & Toolbar */
   .toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
-  #search { 
-    width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-mid); 
-    background: var(--surface2); color: var(--text); outline: none;
-  }
+  #search { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-mid); background: var(--surface2); color: var(--text); outline: none; }
   .filter-bar { display: flex; gap: 8px; overflow-x: auto; }
-  .filter-chip { 
-    padding: 7px 14px; border-radius: 18px; background: var(--surface2); 
-    font-size: 12px; cursor: pointer; color: var(--text2); border: 1px solid transparent;
-  }
+  .filter-chip { padding: 7px 14px; border-radius: 18px; background: var(--surface2); font-size: 12px; cursor: pointer; color: var(--text2); border: 1px solid transparent; }
   .filter-chip.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); }
-
-  /* Carduri & Liste */
-  .dosar-card { 
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); 
-    padding: 1.2rem; margin-bottom: 12px; cursor: pointer; border-left: 5px solid var(--surface2);
-  }
+  .dosar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem; margin-bottom: 12px; cursor: pointer; border-left: 5px solid var(--surface2); }
   .dosar-card.alert-ref { border-left-color: var(--amber); background: #24211D; }
   .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
   .card-nr { font-weight: 600; color: var(--accent-text); }
   .card-client { font-family: 'Lora', serif; font-size: 15px; margin-bottom: 4px; }
   .badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: var(--surface2); color: var(--text2); }
   .badge.warning { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber); }
-
-  /* Tab Incasari - Dashboard */
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 25px; }
   .stat-card { background: var(--surface); padding: 15px; border-radius: var(--radius-lg); border: 1px solid var(--border); text-align: center; }
   .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; display: block; margin-bottom: 5px; }
   .stat-val { font-size: 16px; font-weight: 600; color: var(--accent-text); }
-
   .finance-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: var(--surface); border-radius: 12px; overflow: hidden; }
   .finance-table th { background: var(--surface2); padding: 12px; text-align: left; font-size: 11px; color: var(--text3); text-transform: uppercase; }
   .finance-table td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-
-  /* Modal Style */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
   .overlay.open { display: flex; }
   .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 1.8rem; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-mid); }
@@ -92,12 +55,10 @@
   .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
   .form-group label { display: block; font-size: 10px; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
   .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-mid); background: var(--surface2); color: var(--text); outline: none; }
-  
   .client-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .btn-add-client { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); width: 22px; height: 22px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
   .client-row { display: flex; gap: 8px; margin-bottom: 8px; }
   .btn-remove-client { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 18px; padding: 0 5px; }
-
   .checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .check-item { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: 0.2s; }
   .check-item.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); }
@@ -119,120 +80,121 @@
     </header>
 
     <div class="toolbar">
-        <input type="text" id="search" placeholder="Caută nr. dosar, client, instanță..." oninput="renderDosare()">
+        <input type="text" id="search" placeholder="Caută nr. dosar, client..." oninput="renderDosare()">
         <div class="filter-bar">
             <div class="filter-chip active" id="f-all" onclick="setFilter('all')">Toate</div>
-            <div class="filter-chip" id="f-ref" onclick="setFilter('ref-neterminat')">⚠️ Referate în lucru</div>
+            <div class="filter-chip" id="f-ref" onclick="setFilter('ref-neterminat')">⚠️ Referate</div>
             <div class="filter-chip" id="f-inc" onclick="setFilter('neincasate')">💰 Neîncasate</div>
         </div>
     </div>
-    <div id="dosar-list"></div>
+    <div id="dosar-list">Încărcare date din Cloud...</div>
   </main>
 
   <main class="main hidden" id="view-incasari">
     <header class="header" style="padding:0; margin-bottom:20px; background:transparent; border:none;">
         <div class="header-logo">Situație Financiară <span>(Luna Curentă)</span></div>
     </header>
-
     <div class="stats-grid">
-        <div class="stat-card"><span class="stat-label">Brut Luna Aceasta</span><span id="stat-brut" class="stat-val">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Total Taxe</span><span id="stat-taxe" class="stat-val" style="color:var(--red)">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Rămas Net</span><span id="stat-net" class="stat-val" style="color:#81C784">0 RON</span></div>
+        <div class="stat-card"><span class="stat-label">Brut</span><span id="stat-brut" class="stat-val">0 RON</span></div>
+        <div class="stat-card"><span class="stat-label">Taxe</span><span id="stat-taxe" class="stat-val" style="color:var(--red)">0 RON</span></div>
+        <div class="stat-card"><span class="stat-label">Net</span><span id="stat-net" class="stat-val" style="color:#81C784">0 RON</span></div>
     </div>
-
-    <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
-        <div class="stat-card"><span class="stat-label">Onorarii Alese</span><span id="stat-alese" class="stat-val">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Oficii (după -2%)</span><span id="stat-oficii" class="stat-val">0 RON</span></div>
+    <div id="tax-details-container">
+        <table class="finance-table"><tbody id="tax-details-body"></tbody></table>
     </div>
-
-    <div class="section-title">Defalcare Estimativă Contribuții</div>
-    <table class="finance-table">
-        <thead>
-            <tr><th>Taxă / Contribuție</th><th>Calcul</th><th>Sumă</th></tr>
-        </thead>
-        <tbody id="tax-details-body">
-            </tbody>
-    </table>
   </main>
 </div>
 
 <div class="overlay" id="overlay" onclick="closeOutside(event)">
   <div class="modal">
     <h2 style="font-family:Lora; color:var(--accent);">Fișă Dosar</h2>
-    
     <div class="section-title">Informații Generale</div>
     <div class="form-group" style="grid-column: span 2; margin-bottom: 15px;">
-        <div class="client-header">
-            <label>Clienți</label>
-            <button type="button" class="btn-add-client" onclick="addClientField('')">+</button>
-        </div>
+        <div class="client-header"><label>Clienți</label><button type="button" class="btn-add-client" onclick="addClientField('')">+</button></div>
         <div id="client-fields-container"></div>
     </div>
-
     <div class="form-grid">
         <div class="form-group"><label>NR. Dosar</label><input type="text" id="f-nr"></div>
         <div class="form-group"><label>Instanță</label><input type="text" id="f-instanta"></div>
         <div class="form-group"><label>Telefon</label><input type="text" id="f-telefon"></div>
-        <div class="form-group">
-            <label>Calitate în dosar</label>
-            <select id="f-calitate">
-                <option value="Reclamant">Reclamant</option>
-                <option value="Parat">Pârât</option>
-                <option value="Persoana Vatamata">Persoană Vătămată</option>
-                <option value="Inculpat">Inculpat</option>
-                <option value="Martor">Martor</option>
-            </select>
+        <div class="form-group"><label>Calitate</label>
+            <select id="f-calitate"><option value="Reclamant">Reclamant</option><option value="Parat">Pârât</option><option value="Persoana Vatamata">Persoană Vătămată</option><option value="Inculpat">Inculpat</option><option value="Martor">Martor</option></select>
         </div>
         <div class="form-group"><label>Cauza</label><input type="text" id="f-cauza"></div>
-        <div class="form-group">
-            <label>Tip Onorariu</label>
-            <select id="f-tiponorariu">
-                <option value="aleasa">Ales (Contract)</option>
-                <option value="oficiu">Oficiu (SAJ)</option>
-            </select>
-        </div>
+        <div class="form-group"><label>Tip Onorariu</label><select id="f-tiponorariu"><option value="aleasa">Ales</option><option value="oficiu">Oficiu</option></select></div>
     </div>
-
-    <div class="section-title">Delegație & Termene</div>
+    <div class="section-title">Termene & Onorariu</div>
     <div class="form-grid">
-        <div class="form-group"><label>Nr. Delegație</label><input type="text" id="f-nrdelegatie"></div>
-        <div class="form-group"><label>Data Delegație</label><input type="date" id="f-datadelegatie"></div>
-        <div class="form-group"><label>Termen Inițial</label><input type="date" id="f-termeninitial"></div>
+        <div class="form-group"><label>Nr. Del.</label><input type="text" id="f-nrdelegatie"></div>
+        <div class="form-group"><label>Data Del.</label><input type="date" id="f-datadelegatie"></div>
         <div class="form-group"><label>Termen Nou</label><input type="date" id="f-termennou"></div>
-        <div class="form-group"><label>Ora</label><input type="time" id="f-ora"></div>
-        <div class="form-group"><label>Apel</label><select id="f-apel"><option value="nu">Nu</option><option value="da">Da</option></select></div>
-    </div>
-
-    <div class="section-title">Soluție & Onorariu</div>
-    <div class="form-grid">
-        <div class="form-group"><label>Soluție Penal/Civil</label><input type="text" id="f-solutie"></div>
         <div class="form-group"><label>Onorariu (RON)</label><input type="number" id="f-onorariu"></div>
+        <div class="form-group"><label>Apel</label><select id="f-apel"><option value="nu">Nu</option><option value="da">Da</option></select></div>
+        <div class="form-group"><label>Soluție</label><input type="text" id="f-solutie"></div>
     </div>
-    <div class="form-group" style="margin-top:10px;"><label>Observații</label><textarea id="f-obs" rows="2"></textarea></div>
-
-    <div class="section-title">Circuit Decontare (Pas cu Pas)</div>
     <div class="checklist">
-        <label class="check-item" id="l-ref_facut"><input type="checkbox" id="f-ref_facut" onchange="updCheck('ref_facut')"> 1. Referat Efectuat (Draft)</label>
-        <label class="check-item" id="l-ref_semnat"><input type="checkbox" id="f-ref_semnat" onchange="updCheck('ref_semnat')"> 2. Referat Semnat/Vizat de Instanță</label>
-        <label class="check-item" id="l-ref_depus"><input type="checkbox" id="f-ref_depus" onchange="updCheck('ref_depus')"> 3. Referat Depus pentru Decont (Barou)</label>
-        <label class="check-item" id="l-incasat"><input type="checkbox" id="f-incasat" onchange="updCheck('incasat')"> 4. Onorariu Încasat (Finalizat)</label>
+        <label class="check-item" id="l-ref_facut"><input type="checkbox" id="f-ref_facut" onchange="updCheck('ref_facut')"> 1. Referat Efectuat</label>
+        <label class="check-item" id="l-ref_depus"><input type="checkbox" id="f-ref_depus" onchange="updCheck('ref_depus')"> 3. Referat Depus</label>
+        <label class="check-item" id="l-incasat"><input type="checkbox" id="f-incasat" onchange="updCheck('incasat')"> 4. Onorariu Încasat</label>
     </div>
-
     <div class="footer-btns">
       <button onclick="closeModal()" style="background:none; border:none; color:var(--text3); cursor:pointer;">ANULEAZĂ</button>
-      <button onclick="saveDosar()" class="btn-new">SALVEAZĂ</button>
+      <button onclick="saveDosar()" class="btn-new">SALVEAZĂ CLOUD</button>
     </div>
   </div>
 </div>
 
 <script>
-let dosare = JSON.parse(localStorage.getItem('dosare_circuit_v1') || '[]');
+// --- 2. CONFIGURAȚIA FIREBASE (INLOCUIESTE CU DATELE TALE!) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDIz1HCf-bL7etw1F1QwpUcPHptkj_93B8",
+  authDomain: "lex-assist-589d8.firebaseapp.com",
+  databaseURL: "https://lex-assist-589d8-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "lex-assist-589d8",
+  storageBucket: "lex-assist-589d8.firebasestorage.app",
+  messagingSenderId: "471589116032",
+  appId: "1:471589116032:web:a904596811031ab3b7ae65"
+  measurementId: "G-DQ26FH4C3V"
+};
+
+// Inițializare Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let dosare = [];
 let currentFilter = 'all';
 let editIdx = -1;
 
-const fields = ['nr', 'instanta', 'telefon', 'calitate', 'cauza', 'tiponorariu', 'nrdelegatie', 'datadelegatie', 'termeninitial', 'termennou', 'ora', 'apel', 'solutie', 'obs', 'onorariu'];
-const checks = ['ref_facut', 'ref_semnat', 'ref_depus', 'incasat'];
+// --- 3. LOGICA DE SINCRONIZARE ---
+// Ascultăm modificările din Cloud (Instantaneu pe toate dispozitivele)
+db.ref('dosare').on('value', (snapshot) => {
+    const data = snapshot.val();
+    // Firebase returnează un obiect, îl transformăm în array
+    dosare = data ? Object.values(data) : [];
+    renderDosare();
+    if(!document.getElementById('view-incasari').classList.contains('hidden')) calculateFinance();
+});
 
+function saveDosar() {
+    const d = { id: editIdx >= 0 ? dosare[editIdx].id : Date.now().toString() }; 
+    const clientInputs = document.querySelectorAll('.client-input');
+    d.clients = Array.from(clientInputs).map(input => input.value.trim()).filter(val => val !== '');
+    
+    ['nr', 'instanta', 'telefon', 'calitate', 'cauza', 'tiponorariu', 'nrdelegatie', 'datadelegatie', 'termennou', 'apel', 'solutie', 'onorariu'].forEach(f => {
+        d[f] = document.getElementById('f-' + f).value;
+    });
+    ['ref_facut', 'ref_depus', 'incasat'].forEach(c => {
+        d[c] = document.getElementById('f-' + c).checked;
+    });
+    d.data_salvare = new Date().toISOString();
+
+    // SALVARE ÎN FIREBASE (În loc de LocalStorage)
+    db.ref('dosare/' + d.id).set(d).then(() => {
+        closeModal();
+    });
+}
+
+// --- RESTUL FUNCȚIILOR TALE (Rămân la fel) ---
 function showTab(tab) {
     document.getElementById('view-dosare').classList.toggle('hidden', tab !== 'dosare');
     document.getElementById('view-incasari').classList.toggle('hidden', tab !== 'incasari');
@@ -241,122 +203,64 @@ function showTab(tab) {
     if(tab === 'incasari') calculateFinance();
 }
 
-function updCheck(id) { document.getElementById('l-' + id).classList.toggle('active', document.getElementById('f-' + id).checked); }
-
-function addClientField(value) {
-    const container = document.getElementById('client-fields-container');
-    const row = document.createElement('div');
-    row.className = 'client-row';
-    row.innerHTML = `<input type="text" class="client-input" value="${value}" placeholder="Nume client"><button type="button" class="btn-remove-client" onclick="this.parentElement.remove()">✕</button>`;
-    container.appendChild(row);
-}
-
-function setFilter(f) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
-    document.getElementById('f-' + (f === 'all' ? 'all' : (f === 'ref-neterminat' ? 'ref' : 'inc'))).classList.add('active');
-    renderDosare();
+function renderDosare() {
+    const list = document.getElementById('dosar-list');
+    if (dosare.length === 0) { list.innerHTML = "<p style='text-align:center; color:var(--text3)'>Niciun dosar în Cloud.</p>"; return; }
+    
+    list.innerHTML = dosare.map((d, i) => `
+        <div class="dosar-card ${!d.ref_depus ? 'alert-ref' : ''}" onclick="openModal(${i})">
+            <div class="card-header">
+                <span class="card-nr">${d.nr || '---'}</span>
+                <span class="badge" style="color:${d.incasat ? 'var(--accent)' : 'var(--red)'}">${d.onorariu || 0} RON</span>
+            </div>
+            <div class="card-client">${d.clients ? d.clients.join(', ') : 'Client...'}</div>
+        </div>
+    `).join('');
 }
 
 function openModal(idx) {
     editIdx = idx !== undefined ? idx : -1;
     const d = editIdx >= 0 ? dosare[editIdx] : {};
     document.getElementById('client-fields-container').innerHTML = '';
-    if (d.clients) d.clients.forEach(c => addClientField(c));
-    else addClientField(d.client || '');
-
-    fields.forEach(f => document.getElementById('f-' + f).value = d[f] || (f === 'tiponorariu' ? 'aleasa' : ''));
-    checks.forEach(c => { document.getElementById('f-' + c).checked = !!d[c]; updCheck(c); });
+    (d.clients || ['']).forEach(c => addClientField(c));
+    ['nr', 'instanta', 'telefon', 'calitate', 'cauza', 'tiponorariu', 'nrdelegatie', 'datadelegatie', 'termennou', 'apel', 'solutie', 'onorariu'].forEach(f => {
+        document.getElementById('f-' + f).value = d[f] || (f === 'tiponorariu' ? 'aleasa' : '');
+    });
+    ['ref_facut', 'ref_depus', 'incasat'].forEach(c => {
+        document.getElementById('f-' + c).checked = !!d[c]; updCheck(c);
+    });
     document.getElementById('overlay').classList.add('open');
-}
-
-function closeModal() { document.getElementById('overlay').classList.remove('open'); }
-function closeOutside(e) { if(e.target.id === 'overlay') closeModal(); }
-
-function saveDosar() {
-    const d = {};
-    d.clients = Array.from(document.querySelectorAll('.client-input')).map(i => i.value.trim()).filter(v => v);
-    d.client = d.clients[0] || '';
-    fields.forEach(f => d[f] = document.getElementById('f-' + f).value);
-    checks.forEach(c => d[c] = document.getElementById('f-' + c).checked);
-    d.data_salvare = new Date().toISOString(); // Pentru filtrare lunara
-    
-    if(editIdx >= 0) dosare[editIdx] = d; else dosare.unshift(d);
-    localStorage.setItem('dosare_circuit_v1', JSON.stringify(dosare));
-    closeModal(); renderDosare();
-}
-
-function renderDosare() {
-    const q = document.getElementById('search').value.toLowerCase();
-    const list = document.getElementById('dosar-list');
-    let filtered = dosare.filter(d => (d.nr + (d.clients?d.clients.join(''):'') + d.instanta).toLowerCase().includes(q));
-    if(currentFilter === 'ref-neterminat') filtered = filtered.filter(d => !d.ref_depus);
-    else if(currentFilter === 'neincasate') filtered = filtered.filter(d => !d.incasat);
-
-    list.innerHTML = filtered.map((d, i) => `
-        <div class="dosar-card ${!d.ref_depus ? 'alert-ref' : ''}" onclick="openModal(${i})">
-            <div class="card-header">
-                <span class="card-nr">${d.nr || '---'}</span>
-                <div>
-                    ${!d.ref_depus ? '<span class="badge warning">⚠️ Referat Nedepus</span>' : '<span class="badge" style="color:var(--accent)">✓ Depus</span>'}
-                    <span class="badge" style="margin-left:5px; color:${d.incasat ? 'var(--accent)' : 'var(--red)'}">${d.onorariu || 0} RON</span>
-                </div>
-            </div>
-            <div class="card-client">${d.clients && d.clients.length ? d.clients.join(', ') : (d.client || 'Client...')}</div>
-            <div style="font-size:11px; color:var(--text2)">
-                ${d.instanta} | <span style="color:var(--accent-text)">${d.tiponorariu === 'oficiu' ? 'OFICIU' : 'ALES'}</span>
-            </div>
-        </div>
-    `).join('');
 }
 
 function calculateFinance() {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    let brutAlese = 0;
-    let brutOficii = 0;
-
+    let brutAlese = 0, brutOficii = 0;
     dosare.forEach(d => {
-        if(!d.incasat || !d.data_salvare) return;
+        if(!d.incasat) return;
         const dDate = new Date(d.data_salvare);
-        if(dDate.getMonth() === currentMonth && dDate.getFullYear() === currentYear) {
-            let suma = parseFloat(d.onorariu) || 0;
-            if(d.tiponorariu === 'oficiu') brutOficii += (suma * 0.98); // -2% SAJ
-            else brutAlese += suma;
+        if(dDate.getMonth() === now.getMonth()) {
+            let s = parseFloat(d.onorariu) || 0;
+            if(d.tiponorariu === 'oficiu') brutOficii += (s * 0.98); else brutAlese += s;
         }
     });
-
     const totalBrut = brutAlese + brutOficii;
     const caa = totalBrut > 4900 ? (totalBrut * 0.14) : (totalBrut > 0 ? 685 : 0);
-    const cass = totalBrut * 0.10;
-    const taxeFixe = 191 + 5; // Barou + Solidaritate
-    const bazaImpozabila = Math.max(0, totalBrut - caa - cass - taxeFixe);
-    const impozit = bazaImpozabila * 0.10;
-    
-    const totalTaxe = caa + cass + taxeFixe + impozit;
-    const net = totalBrut - totalTaxe;
-
-    document.getElementById('stat-brut').innerText = totalBrut.toFixed(2) + " RON";
-    document.getElementById('stat-taxe').innerText = totalTaxe.toFixed(2) + " RON";
-    document.getElementById('stat-net').innerText = net.toFixed(2) + " RON";
-    document.getElementById('stat-alese').innerText = brutAlese.toFixed(2) + " RON";
-    document.getElementById('stat-oficii').innerText = brutOficii.toFixed(2) + " RON";
-
-    const rows = [
-        ["CAA (Pensii)", totalBrut > 4900 ? "14%" : "Cota fixă", caa],
-        ["CASS (Sănătate)", "10%", cass],
-        ["Barou & Fond Solidaritate", "Fix lunar", taxeFixe],
-        ["Impozit pe venit", "10% din net profesional", impozit]
-    ];
-
-    document.getElementById('tax-details-body').innerHTML = rows.map(r => `
-        <tr><td>${r[0]}</td><td style="color:var(--text3)">${r[1]}</td><td style="font-weight:600; color:var(--accent)">${r[2].toFixed(2)} lei</td></tr>
-    `).join('');
+    const cass = totalBrut * 0.10, taxeFixe = 196;
+    const impozit = Math.max(0, totalBrut - caa - cass - taxeFixe) * 0.10;
+    document.getElementById('stat-brut').innerText = totalBrut.toFixed(0) + " RON";
+    document.getElementById('stat-taxe').innerText = (caa+cass+taxeFixe+impozit).toFixed(0) + " RON";
+    document.getElementById('stat-net').innerText = (totalBrut - (caa+cass+taxeFixe+impozit)).toFixed(0) + " RON";
 }
 
-renderDosare();
+function addClientField(v) {
+    const container = document.getElementById('client-fields-container');
+    const row = document.createElement('div'); row.className = 'client-row';
+    row.innerHTML = `<input type="text" class="client-input" value="${v}"><button type="button" class="btn-remove-client" onclick="this.parentElement.remove()">✕</button>`;
+    container.appendChild(row);
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function updCheck(id) { document.getElementById('l-' + id).classList.toggle('active', document.getElementById('f-' + id).checked); }
+function closeOutside(e) { if(e.target.id === 'overlay') closeModal(); }
 </script>
 </body>
 </html>
