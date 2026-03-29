@@ -161,12 +161,13 @@
   </main>
 
   <main class="main hidden" id="view-incasari">
-    <header class="header" style="padding:0; margin-bottom:20px; background:transparent; border:none; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; height: auto;">
+    <main class="main hidden" id="view-incasari">
+    <header style="margin-bottom:20px; display: flex; flex-direction: column; gap: 15px;">
         <div class="header-logo">Situație Financiară</div>
         
         <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <div style="display: flex; gap: 10px; width: 100%;">
-                <select id="select-luna" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <select id="select-luna" onchange="calculateFinance()" style="padding: 12px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none; font-size: 14px;">
                     <option value="0">Ianuarie</option>
                     <option value="1">Februarie</option>
                     <option value="2">Martie</option>
@@ -180,14 +181,41 @@
                     <option value="10">Noiembrie</option>
                     <option value="11">Decembrie</option>
                 </select>
-                <select id="select-an" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
-    </select>
+                <select id="select-an" onchange="calculateFinance()" style="padding: 12px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none; font-size: 14px;">
+                </select>
             </div>
-            <button onclick="generatePDF()" style="width: 100%; padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); cursor: pointer; font-weight: 600; font-size: 11px;">
-                📥 DESCARCĂ RAPORT PDF (LUNAR)
+            
+            <button onclick="generatePDF(event)" style="width: 100%; padding: 14px; border-radius: 10px; background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); cursor: pointer; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                📥 DESCARCĂ RAPORT PDF
             </button>
         </div>
     </header>
+    
+    ```
+
+#### 2. Corecție în funcția JavaScript pentru PDF
+În funcția `generatePDF()`, ai o referință la `event.currentTarget` care poate da erori pe anumite browsere mobile dacă `event` nu este transmis corect. Modifică începutul funcției astfel:
+
+```javascript
+function generatePDF(event) {
+    // Verificăm dacă event există pentru a nu bloca execuția pe mobil
+    const btn = event ? event.currentTarget : null;
+    const originalText = btn ? btn.innerText : "";
+    
+    if(btn) btn.innerText = "⏳ GENERARE...";
+
+    const lunaText = document.getElementById('select-luna').options[document.getElementById('select-luna').selectedIndex].text;
+    const an = document.getElementById('select-an').value;
+    
+    // ... restul codului tău de generare ...
+    
+    html2pdf().set(opt).from(clone).save().then(() => {
+        if(btn) btn.innerText = originalText;
+    }).catch(err => {
+        console.error(err);
+        if(btn) btn.innerText = "EROARE PDF";
+    });
+}
 
     <div id="pdf-content">
         <div class="stats-grid">
