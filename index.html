@@ -8,6 +8,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +54,6 @@
   .main { flex: 1; padding: 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; }
   .hidden { display: none; }
 
-  /* TOOLBAR NOU CU CAUTARE */
   .toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
   #search { 
     width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-mid); 
@@ -128,30 +128,35 @@
 <div class="app-shell">
   <main class="main" id="view-dosare">
     <header class="header" style="padding:0; margin-bottom:20px; background:transparent; border:none;">
-      <div class="header-logo">Registru<span>.</span>Avocat</div>
+      <div class="header-logo">Lex-Assist <span>.</span> CA Bianca Brecea</div>
       <button class="btn-new" onclick="openModal()">+ DOSAR NOU</button>
     </header>
 
-    <div class="toolbar">
-        <input type="text" id="search" placeholder="Caută în listă (nume, nr. dosar, instanță)..." oninput="renderDosare()">
-        <div class="filter-bar">
-            <div class="filter-chip active" id="f-all" onclick="setFilter('all')">Active</div>
-            <div class="filter-chip" id="f-ref" onclick="setFilter('ref-neterminat')">⚠️ Referate</div>
-            <div class="filter-chip" id="f-inc" onclick="setFilter('neincasate')">💰 Neîncasate</div>
-            <div class="filter-chip" id="f-arch" onclick="setFilter('arhivate')">📁 Arhivă</div>
-        </div>
-
-        <div id="mini-dashboard" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
-            <div style="background: var(--accent-light); border: 1px solid var(--accent); border-radius: 12px; padding: 12px; display: flex; flex-direction: column;">
-                <span style="font-size: 9px; color: var(--accent-text); text-transform: uppercase; font-weight: 600; opacity: 0.8;">💰 De Încasat</span>
-                <span id="total-pending" style="font-size: 15px; font-weight: 700; color: var(--accent);">0 RON</span>
-            </div>
-            <div style="background: var(--amber-light); border: 1px solid var(--amber); border-radius: 12px; padding: 12px; display: flex; flex-direction: column;">
-                <span style="font-size: 9px; color: var(--amber); text-transform: uppercase; font-weight: 600; opacity: 0.8;">⚠️ Referate Restante</span>
-                <span id="total-refs" style="font-size: 15px; font-weight: 700; color: var(--amber);">0</span>
-            </div>
-        </div>
+   <div class="toolbar">
+    <input type="text" id="search" placeholder="Caută orice (nume, nr. dosar, instanță, cauză, observații)..." oninput="renderDosare()">
+    
+    <div style="display: flex; gap: 8px; margin-top: 5px;">
+        <select id="filter-luna-del" onchange="renderDosare()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1.5; font-size: 12px; outline: none;">
+            <option value="">Toate lunile (Delegație)</option>
+            <option value="01">Ianuarie</option><option value="02">Februarie</option><option value="03">Martie</option>
+            <option value="04">Aprilie</option><option value="05">Mai</option><option value="06">Iunie</option>
+            <option value="07">Iulie</option><option value="08">August</option><option value="09">Septembrie</option>
+            <option value="10">Octombrie</option><option value="11">Noiembrie</option><option value="12">Decembrie</option>
+        </select>
+        <select id="filter-an-del" onchange="renderDosare()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; font-size: 12px; outline: none;">
+            </select>
+        <button onclick="resetFilters()" style="padding: 0 15px; border-radius: 10px; background: rgba(207, 102, 121, 0.1); color: var(--red); border: 1px solid var(--red); cursor: pointer; font-weight: 600; font-size: 11px;">
+            RESET
+        </button>
     </div>
+
+    <div class="filter-bar">
+        <div class="filter-chip active" id="f-all" onclick="setFilter('all')">Active</div>
+        <div class="filter-chip" id="f-ref" onclick="setFilter('ref-neterminat')">⚠️ Referate</div>
+        <div class="filter-chip" id="f-inc" onclick="setFilter('neincasate')">💰 Neîncasate</div>
+        <div class="filter-chip" id="f-arch" onclick="setFilter('arhivate')">📁 Arhivă</div>
+    </div>
+</div>
     <div id="dosar-list">Conectare la Cloud...</div>
   </main>
 
@@ -159,50 +164,54 @@
     <header class="header" style="padding:0; margin-bottom:20px; background:transparent; border:none; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; height: auto;">
         <div class="header-logo">Situație Financiară</div>
         
-        <div style="display: flex; gap: 10px; width: 100%;">
-            <select id="select-luna" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
-                <option value="0">Ianuarie</option>
-                <option value="1">Februarie</option>
-                <option value="2">Martie</option>
-                <option value="3">Aprilie</option>
-                <option value="4">Mai</option>
-                <option value="5">Iunie</option>
-                <option value="6">Iulie</option>
-                <option value="7">August</option>
-                <option value="8">Septembrie</option>
-                <option value="9">Octombrie</option>
-                <option value="10">Noiembrie</option>
-                <option value="11">Decembrie</option>
-            </select>
-            <select id="select-an" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-            </select>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <select id="select-luna" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
+                    <option value="0">Ianuarie</option>
+                    <option value="1">Februarie</option>
+                    <option value="2">Martie</option>
+                    <option value="3">Aprilie</option>
+                    <option value="4">Mai</option>
+                    <option value="5">Iunie</option>
+                    <option value="6">Iulie</option>
+                    <option value="7">August</option>
+                    <option value="8">Septembrie</option>
+                    <option value="9">Octombrie</option>
+                    <option value="10">Noiembrie</option>
+                    <option value="11">Decembrie</option>
+                </select>
+                <select id="select-an" onchange="calculateFinance()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; outline: none;">
+    </select>
+            </div>
+            <button onclick="generatePDF()" style="width: 100%; padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--accent); border: 1px solid var(--accent); cursor: pointer; font-weight: 600; font-size: 11px;">
+                📥 DESCARCĂ RAPORT PDF (LUNAR)
+            </button>
         </div>
     </header>
 
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-label">Brut Perioadă</span><span id="stat-brut" class="stat-val">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Total Taxe</span><span id="stat-taxe" class="stat-val" style="color:var(--red)">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Rămas Net</span><span id="stat-net" class="stat-val" style="color:var(--green)">0 RON</span></div>
+    <div id="pdf-content">
+        <div class="stats-grid">
+            <div class="stat-card"><span class="stat-label">Brut Perioadă</span><span id="stat-brut" class="stat-val">0 RON</span></div>
+            <div class="stat-card"><span class="stat-label">Total Taxe</span><span id="stat-taxe" class="stat-val" style="color:var(--red)">0 RON</span></div>
+            <div class="stat-card"><span class="stat-label">Rămas Net</span><span id="stat-net" class="stat-val" style="color:var(--green)">0 RON</span></div>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="stat-card"><span class="stat-label">Onorarii Alese</span><span id="stat-alese" class="stat-val">0 RON</span></div>
+            <div class="stat-card"><span class="stat-label">Oficii (după -2%)</span><span id="stat-oficii" class="stat-val">0 RON</span></div>
+        </div>
+
+        <div class="section-title">Defalcare Estimativă Contribuții</div>
+        <table class="finance-table">
+            <thead>
+                <tr><th>Taxă / Contribuție</th><th>Sursă/Calcul</th><th>Sumă</th></tr>
+            </thead>
+            <tbody id="tax-details-body"></tbody>
+        </table>
+
+        <div class="section-title">Dosare Încasate în această lună</div>
+        <div id="monthly-dosare-list" style="margin-top: 10px;"></div>
     </div>
-
-    <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
-        <div class="stat-card"><span class="stat-label">Onorarii Alese</span><span id="stat-alese" class="stat-val">0 RON</span></div>
-        <div class="stat-card"><span class="stat-label">Oficii (după -2%)</span><span id="stat-oficii" class="stat-val">0 RON</span></div>
-    </div>
-
-    <div class="section-title">Defalcare Estimativă Contribuții</div>
-    <table class="finance-table">
-        <thead>
-            <tr><th>Taxă / Contribuție</th><th>Sursă/Calcul</th><th>Sumă</th></tr>
-        </thead>
-        <tbody id="tax-details-body"></tbody>
-    </table>
-
-    <div class="section-title">Dosare Încasate în această lună</div>
-    <div id="monthly-dosare-list" style="margin-top: 10px;"></div>
   </main>
 </div>
 
@@ -306,13 +315,135 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('select-an').value = d.getFullYear();
 });
 
+window.addEventListener('DOMContentLoaded', () => {
+    const d = new Date();
+    
+    // 1. Populăm anii dinamic
+    populateYearSelect();
+    
+    // 2. Setăm luna curentă
+    document.getElementById('select-luna').value = d.getMonth();
+    
+    // 3. Notă: populateYearSelect() a setat deja anul curent implicit, 
+    // dar dacă vrei să fii sigur, poți forța din nou:
+    document.getElementById('select-an').value = d.getFullYear();
+});
+
 db.ref('dosare_v1').on('value', (snapshot) => {
     const data = snapshot.val();
     dosare = data ? Object.values(data).sort((a,b) => new Date(b.data_salvare) - new Date(a.data_salvare)) : [];
     renderDosare();
     calculateFinance();
-    updateMiniDashboard(); // Update Dashboard on data change
+    updateMiniDashboard();
 });
+
+// Executăm la încărcarea paginii
+window.addEventListener('DOMContentLoaded', () => {
+    const d = new Date();
+    populateYearFilters(); // Inițializăm anii (+2 fata de curent)
+    document.getElementById('select-luna').value = d.getMonth();
+    document.getElementById('select-an').value = d.getFullYear();
+});
+
+function populateYearFilters() {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2024;
+    const endYear = currentYear + 2;
+    
+    // Populăm ambele selectoare de ani (cel de la Finante si cel de la Filtre)
+    const selects = ['select-an', 'filter-an-del'];
+    
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        const isFilter = id === 'filter-an-del';
+        el.innerHTML = isFilter ? '<option value="">Toți anii</option>' : '';
+        
+        for (let y = startYear; y <= endYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.text = y;
+            el.appendChild(opt);
+        }
+        if (!isFilter) el.value = currentYear;
+    });
+}
+
+function resetFilters() {
+    document.getElementById('search').value = '';
+    document.getElementById('filter-luna-del').value = '';
+    document.getElementById('filter-an-del').value = '';
+    setFilter('all'); // Revine la tab-ul de Active
+}
+
+function renderDosare() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const fLuna = document.getElementById('filter-luna-del').value;
+    const fAn = document.getElementById('filter-an-del').value;
+    const list = document.getElementById('dosar-list');
+    
+    let filtered = dosare.filter(d => {
+        if(currentFilter === 'arhivate') return d.arhivat === true;
+        if(d.arhivat) return false;
+        if(currentFilter === 'ref-neterminat') if(d.ref_depus) return false;
+        if(currentFilter === 'neincasate') if(d.incasat) return false;
+        return true;
+    });
+
+    // Filtru Data Delegație
+    if (fLuna || fAn) {
+        filtered = filtered.filter(d => {
+            if (!d.datadelegatie) return false;
+            const [year, month] = d.datadelegatie.split('-');
+            const matchAn = fAn ? year === fAn : true;
+            const matchLuna = fLuna ? month === fLuna : true;
+            return matchAn && matchLuna;
+        });
+    }
+
+    // Deep Search: caută în toate câmpurile
+    if(q) {
+        filtered = filtered.filter(d => {
+            const searchPool = [
+                d.nr, d.instanta, d.client, d.cauza, d.solutie, 
+                d.obs, d.calitate, d.nrdelegatie, d.telefon,
+                ...(d.clients || [])
+            ].join(' ').toLowerCase();
+            return searchPool.includes(q);
+        });
+    }
+
+    if(filtered.length === 0) {
+        list.innerHTML = `<p style='text-align:center; color:var(--text3); margin-top:40px;'>Niciun dosar găsit.</p>`;
+        return;
+    }
+
+    // Randare Carduri
+    list.innerHTML = filtered.map((d) => {
+        const originalIdx = dosare.findIndex(item => item.id === d.id);
+        const linkPortal = `https://portal.just.ro/SitePages/acasa.aspx?k=${encodeURIComponent(d.nr || '')}`;
+        return `
+        <div class="dosar-card ${!d.ref_depus && !d.arhivat ? 'alert-ref' : ''} ${d.arhivat ? 'is-archived' : ''}">
+            <div onclick="openModal(${originalIdx})">
+                <div class="card-header">
+                    <span class="card-nr">${d.ordonator ? `<span class="badge" style="background:${d.ordonator === 'MP' ? '#4A148C' : '#01579B'}; color:white; margin-right:5px;">${d.ordonator}</span>` : ''} ${d.nr || '---'}</span>
+                    <div>
+                        ${d.arhivat ? '<span class="badge">ARHIVAT</span>' : (!d.ref_depus ? '<span class="badge warning">⚠️ Referat</span>' : '<span class="badge" style="color:var(--accent)">✓ Depus</span>')}
+                        <span class="badge" style="margin-left:5px; color:${d.incasat ? 'var(--green)' : 'var(--red)'}">${d.onorariu || 0} RON</span>
+                    </div>
+                </div>
+                <div class="card-client">${d.clients && d.clients.length ? d.clients.join(', ') : (d.client || 'Client...')}</div>
+                <div style="font-size:11px; color:var(--text2); margin-bottom: 2px;">
+                    ${d.instanta || ''} | <strong>${d.cauza || ''}</strong>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="${linkPortal}" target="_blank" class="btn-action btn-portal">🔍 PORTAL</a>
+                <button onclick="event.stopPropagation(); toggleArhiva('${d.id}', ${!!d.arhivat})" class="btn-action btn-archive">${d.arhivat ? '📂 RESTAUREAZĂ' : '📁 ARHIVEAZĂ'}</button>
+                <button onclick="event.stopPropagation(); deleteDosar('${d.id}', '${d.nr}')" class="btn-action btn-delete">✕ ȘTERGE</button>
+            </div>
+        </div>`;
+    }).join('');
+}
 
 function updateMiniDashboard() {
     const suma = dosare
@@ -397,30 +528,74 @@ function openModal(idx) {
 function closeModal() { document.getElementById('overlay').classList.remove('open'); }
 function closeOutside(e) { if(e.target.id === 'overlay') closeModal(); }
 
+function populateYearSelect() {
+    const yearSelect = document.getElementById('select-an');
+    const currentYear = new Date().getFullYear();
+    const startYear = 2024; // Anul de pornire al aplicației tale
+    const endYear = currentYear + 2; // Limita cerută de tine
+
+    yearSelect.innerHTML = ''; // Curățăm lista existentă
+
+    for (let year = startYear; year <= endYear; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.text = year;
+        yearSelect.appendChild(option);
+    }
+    
+    // Setăm automat anul curent ca selecție implicită
+    yearSelect.value = currentYear;
+}
+
 function renderDosare() {
     const q = document.getElementById('search').value.toLowerCase();
+    const fLuna = document.getElementById('filter-luna-del').value;
+    const fAn = document.getElementById('filter-an-del').value;
     const list = document.getElementById('dosar-list');
     
     let filtered = dosare.filter(d => {
+        // 1. Filtru de Arhivă / Status
         if(currentFilter === 'arhivate') return d.arhivat === true;
-        return d.arhivat !== true;
+        if(d.arhivat) return false;
+        
+        if(currentFilter === 'ref-neterminat') if(d.ref_depus) return false;
+        if(currentFilter === 'neincasate') if(d.incasat) return false;
+        
+        return true;
     });
 
-    if(currentFilter === 'ref-neterminat') filtered = filtered.filter(d => !d.ref_depus);
-    if(currentFilter === 'neincasate') filtered = filtered.filter(d => !d.incasat);
-
-    if(q) {
+    // 2. Filtru după Data Delegației
+    if (fLuna || fAn) {
         filtered = filtered.filter(d => {
-            const pool = `${d.nr} ${d.instanta} ${d.client} ${(d.clients||[]).join(' ')}`.toLowerCase();
-            return pool.includes(q);
+            if (!d.datadelegatie) return false;
+            const [year, month] = d.datadelegatie.split('-'); // Formatul input date este YYYY-MM
+            const matchAn = fAn ? year === fAn : true;
+            const matchLuna = fLuna ? month === fLuna : true;
+            return matchAn && matchLuna;
         });
     }
 
-    if(filtered.length === 0) {
-        list.innerHTML = `<p style='text-align:center; color:var(--text3); margin-top:40px;'>Niciun rezultat găsit ${q ? `pentru "${q}"` : ''}.</p>`;
-        return;
+    // 3. Căutare Globală (Deep Search)
+    if(q) {
+        filtered = filtered.filter(d => {
+            // Combinăm toate valorile relevante într-un singur șir de text pentru căutare
+            const searchPool = [
+                d.nr, d.instanta, d.client, d.cauza, d.solutie, d.obs, 
+                d.calitate, d.nrdelegatie, d.telefon,
+                ...(d.clients || [])
+            ].join(' ').toLowerCase();
+            
+            return searchPool.includes(q);
+        });
     }
 
+    // ... restul funcției (generarea HTML-ului) rămâne neschimbat
+    if(filtered.length === 0) {
+        list.innerHTML = `<p style='text-align:center; color:var(--text3); margin-top:40px;'>Niciun dosar găsit pentru criteriile selectate.</p>`;
+        return;
+    }
+    
+    // (Păstrează aici codul existent pentru list.innerHTML = filtered.map(...).join(''))
     list.innerHTML = filtered.map((d) => {
         const originalIdx = dosare.findIndex(item => item.id === d.id);
         const linkPortal = `https://portal.just.ro/SitePages/acasa.aspx?k=${encodeURIComponent(d.nr || '')}`;
@@ -438,7 +613,7 @@ function renderDosare() {
                 </div>
                 <div class="card-client">${d.clients && d.clients.length ? d.clients.join(', ') : (d.client || 'Client...')}</div>
                 <div style="font-size:11px; color:var(--text2); margin-bottom: 2px;">
-                    ${d.instanta || ''} | <small>${d.tiponorariu === 'oficiu' ? 'Oficiu' : 'Contract'}</small>
+                    ${d.instanta || ''} | <strong>${d.cauza || ''}</strong> | <small>${d.tiponorariu === 'oficiu' ? 'Oficiu' : 'Contract'}</small>
                 </div>
             </div>
             <div class="card-actions">
@@ -465,23 +640,32 @@ function calculateFinance() {
                 let sumaNet = suma * 0.98;
                 if(d.ordonator === 'MP') brutMP += sumaNet; else brutMJ += sumaNet;
             } else { brutAlese += suma; }
-            listHTML += `<div style="background:var(--surface2); padding:10px; border-radius:8px; margin-bottom:5px; display:flex; justify-content:space-between; font-size:12px;">
-                <span>${d.nr || 'N/A'} - ${d.client || 'Client'}</span>
-                <span style="color:var(--accent)">${suma} RON</span>
-            </div>`;
+            listHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); transition: background 0.2s;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-weight: 600; color: var(--text); font-size: 13px;">${d.nr || 'Fără Nr.'}</span>
+                        <span style="font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px;">${d.client || 'Client Nespecificat'}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="display: block; font-weight: 700; color: var(--accent); font-size: 14px;">${suma.toLocaleString('ro-RO')} RON</span>
+                        <span style="font-size: 9px; color: var(--text3);">${d.tiponorariu === 'oficiu' ? 'DECONT OFICIU' : 'ONORARIU ALES'}</span>
+                    </div>
+                </div>`;
         }
     });
 
     const totalBrut = brutAlese + brutMJ + brutMP;
-    const caa = totalBrut > 4900 ? (totalBrut * 0.14) : (totalBrut > 0 ? 685 : 0);
-    const cass = totalBrut * 0.10;
-    const taxeFixe = totalBrut > 0 ? 196 : 0;
-    const impozit = Math.max(0, totalBrut - caa - cass - taxeFixe) * 0.10;
-    const totalTaxe = caa + cass + taxeFixe + impozit;
+    
+    const rezervaCAA = totalBrut * 0.14; 
+    const rezervaCASS = totalBrut * 0.10;
+    const taxeFixe = totalBrut > 0 ? 196 : 0; 
+    const rezervaImpozit = Math.max(0, totalBrut - rezervaCAA - taxeFixe) * 0.10;
+    
+    const totalRezerva = rezervaCAA + rezervaCASS + taxeFixe + rezervaImpozit;
 
     document.getElementById('stat-brut').innerText = totalBrut.toFixed(2) + " RON";
-    document.getElementById('stat-taxe').innerText = totalTaxe.toFixed(2) + " RON";
-    document.getElementById('stat-net').innerText = (totalBrut - totalTaxe).toFixed(2) + " RON";
+    document.getElementById('stat-taxe').innerText = totalRezerva.toFixed(2) + " RON";
+    document.getElementById('stat-net').innerText = (totalBrut - totalRezerva).toFixed(2) + " RON";
     document.getElementById('stat-alese').innerText = brutAlese.toFixed(2) + " RON";
     document.getElementById('stat-oficii').innerText = (brutMJ + brutMP).toFixed(2) + " RON";
 
@@ -490,17 +674,111 @@ function calculateFinance() {
         ["Ministerul Public (MP)", "Oficii Parchet", brutMP],
         ["Onorarii Alese", "Contracte Directe", brutAlese],
         ["---", "", 0],
-        ["CAA (Pensii)", "Contribuție", -caa],
-        ["CASS (Sănătate)", "10%", -cass],
-        ["Barou & Fonduri", "Taxe fixe", -taxeFixe],
-        ["Impozit pe Venit", "10%", -impozit]
+        ["Previziune CAA", "Pensii (14%)", -rezervaCAA],
+        ["Previziune CASS", "Sănătate (10%)", -rezervaCASS],
+        ["Taxe Barou & Fonduri", "Fix lunar", -taxeFixe],
+        ["Previziune Impozit", "Venit (10%)", -rezervaImpozit]
     ];
 
     document.getElementById('tax-details-body').innerHTML = rows.map(r => {
-        if(r[0] === "---") return `<tr><td colspan="3" style="border-bottom: 1px solid var(--border-mid)"></td></tr>`;
+        if(r[0] === "---") return `<tr><td colspan="3" style="padding: 10px 0; text-align:center;"><small style="color:var(--text3); font-size:9px; letter-spacing:1px;">⚠️ TAXE DE CALCULAT FINAL LA DECLARAȚIA UNICĂ</small></td></tr>`;
         return `<tr><td>${r[0]}</td><td style="color:var(--text3); font-size:11px;">${r[1]}</td><td style="font-weight:600; color:${r[2] < 0 ? 'var(--red)' : 'var(--accent)'}">${Math.abs(r[2]).toFixed(2)} lei</td></tr>`;
     }).join('');
     document.getElementById('monthly-dosare-list').innerHTML = listHTML || "<p style='color:var(--text3); text-align:center;'>Nicio încasare înregistrată.</p>";
+}
+
+// FUNCȚIE PDF
+function generatePDF() {
+    const lunaText = document.getElementById('select-luna').options[document.getElementById('select-luna').selectedIndex].text;
+    const an = document.getElementById('select-an').value;
+    const element = document.getElementById('pdf-content');
+    
+    // Creăm o clonă pentru raportul "Printer Friendly"
+    const clone = element.cloneNode(true);
+    
+    // Stil general pentru pagina albă
+    clone.style.backgroundColor = "#ffffff";
+    clone.style.color = "#000000";
+    clone.style.padding = "25px";
+    clone.style.fontFamily = "'Lora', serif";
+
+    // Ajustăm toate elementele interne pentru lizibilitate maximă la print
+    const allElements = clone.querySelectorAll('*');
+    allElements.forEach(el => {
+        el.style.color = "#000000";
+        el.style.borderColor = "#333333";
+        
+        // Transformăm cardurile în secțiuni cu bordură simplă
+        if (el.classList.contains('stat-card')) {
+            el.style.background = "#ffffff";
+            el.style.border = "1px solid #000000";
+            el.style.borderRadius = "0px"; // Aspect mai sobru
+        }
+        
+        // Stil tabel oficial
+        if (el.tagName === 'TABLE' || el.tagName === 'TH' || el.tagName === 'TD') {
+            el.style.backgroundColor = "#ffffff";
+            el.style.border = "1px solid #000000";
+        }
+        
+        if (el.tagName === 'TH') {
+            el.style.backgroundColor = "#f2f2f2"; // Gri foarte deschis pentru cap de tabel
+        }
+
+        // Eliminăm culorile de accent (roz/roșu/verde) pentru varianta oficială
+        if (el.style.color.includes('var(--accent)') || el.style.color.includes('var(--green)') || el.style.color.includes('var(--red)')) {
+            el.style.color = "#000000";
+            el.style.fontWeight = "bold";
+        }
+    });
+
+    // Antet Oficial cu datele fiscale cerute
+    const header = document.createElement('div');
+    header.style.marginBottom = "30px";
+    header.style.borderBottom = "2px solid #000000";
+    header.style.paddingBottom = "15px";
+    header.style.textAlign = "center";
+    
+    header.innerHTML = `
+        <div style="text-align: left; margin-bottom: 20px;">
+            <strong style="font-size: 16px; text-transform: uppercase;">Cabinet de Avocat Bianca Brecea</strong><br>
+            <span style="font-size: 11px;">CUI: 48334862</span><br>
+            <span style="font-size: 11px;">Sediu: Str. Solstitiului Nr. 27, Bl. C1, Parter, Ap. 7, Loc. Popesti-Leordeni, Jud. Ilfov</span>
+        </div>
+        <h2 style="font-size: 18px; margin: 10px 0; text-decoration: underline;">RAPORT LUNAR DE ACTIVITATE ȘI ÎNCASĂRI</h2>
+        <p style="font-size: 13px; font-weight: bold;">Perioada de referință: ${lunaText} ${an}</p>
+    `;
+    clone.prepend(header);
+
+    // Adăugăm un footer pentru semnătură la finalul raportului
+    const footer = document.createElement('div');
+    footer.style.marginTop = "40px";
+    footer.style.display = "flex";
+    footer.style.justifyContent = "space-between";
+    footer.innerHTML = `
+        <div style="font-size: 10px; color: #555;">Generat la data de: ${new Date().toLocaleDateString('ro-RO')}</div>
+        <div style="text-align: center; border-top: 1px solid #000; width: 150px; padding-top: 5px;">
+            <span style="font-size: 12px; font-weight: bold;">Semnătură și Parafă</span>
+        </div>
+    `;
+    clone.appendChild(footer);
+
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Raport_Oficial_${lunaText}_${an}.pdf`,
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { scale: 2, backgroundColor: '#ffffff' },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Confirmare vizuală pe buton
+    const btn = event.currentTarget;
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ GENERARE RAPORT...";
+    
+    html2pdf().set(opt).from(clone).save().then(() => {
+        btn.innerText = originalText;
+    });
 }
 </script>
 </body>
