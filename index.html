@@ -108,6 +108,12 @@
         .btn-portal { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
         .btn-archive { background: rgba(128, 128, 128, 0.1); border-color: var(--text3); color: var(--text2); }
         .btn-delete { background: rgba(207, 102, 121, 0.1); border-color: var(--red); color: var(--red); margin-left: auto; }
+
+        /* DASHBOARD STYLE */
+        .dash-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .dash-card { background: var(--surface); padding: 12px; border-radius: 14px; border-left: 4px solid var(--accent); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        .dash-label { font-size: 9px; text-transform: uppercase; color: var(--text3); letter-spacing: 0.5px; }
+        .dash-val { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -123,6 +129,17 @@
             <div class="header-logo">Lex-Assist <span>.</span> CA Bianca Brecea</div>
             <button class="btn-new" onclick="openModal()">+ DOSAR NOU</button>
         </header>
+
+        <div class="dash-container">
+            <div class="dash-card" style="border-left-color: var(--amber);">
+                <div class="dash-label">De încasat (Total)</div>
+                <div class="dash-val" id="dash-rest-incasare">0 RON</div>
+            </div>
+            <div class="dash-card" style="border-left-color: var(--red);">
+                <div class="dash-label">Referate de depus</div>
+                <div class="dash-val" id="dash-count-referate">0 Dosare</div>
+            </div>
+        </div>
 
         <div class="toolbar">
             <input type="text" id="search" placeholder="Caută orice (nume, nr. dosar, instanță, cauză, observații)..." oninput="renderDosare()">
@@ -304,9 +321,30 @@ function populateYearFilters() {
 db.ref('dosare_v1').on('value', (snapshot) => {
     const data = snapshot.val();
     dosare = data ? Object.values(data).sort((a,b) => new Date(b.data_salvare) - new Date(a.data_salvare)) : [];
+    updateDashboard(); // Update Dashboard
     renderDosare();
     calculateFinance();
 });
+
+// LOGICA DASHBOARD
+function updateDashboard() {
+    let deIncasat = 0;
+    let referateRest = 0;
+
+    dosare.forEach(d => {
+        if (!d.arhivat) {
+            if (!d.incasat) {
+                deIncasat += parseFloat(d.onorariu || 0);
+            }
+            if (!d.ref_depus) {
+                referateRest++;
+            }
+        }
+    });
+
+    document.getElementById('dash-rest-incasare').innerText = deIncasat.toLocaleString('ro-RO') + " RON";
+    document.getElementById('dash-count-referate').innerText = referateRest + " Dosare";
+}
 
 // LOGICA FILTRARE & RENDER (IDENTIC)
 function setFilter(f) {
