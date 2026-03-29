@@ -114,6 +114,8 @@
         .dash-card { background: var(--surface); padding: 12px; border-radius: 14px; border-left: 4px solid var(--accent); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
         .dash-label { font-size: 9px; text-transform: uppercase; color: var(--text3); letter-spacing: 0.5px; }
         .dash-val { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
+
+        .btn-export { background: #2e7d32; color: white; border: none; padding: 10px; border-radius: 10px; font-size: 11px; font-weight: 600; cursor: pointer; flex: 1; }
     </style>
 </head>
 <body>
@@ -153,6 +155,7 @@
                     <option value="10">Octombrie</option><option value="11">Noiembrie</option><option value="12">Decembrie</option>
                 </select>
                 <select id="filter-an-del" onchange="renderDosare()" style="padding: 10px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border-mid); flex: 1; font-size: 12px; outline: none;"></select>
+                <button class="btn-export" onclick="exportToExcel()">📊 EXPORT EXCEL (CSV)</button>
                 <button onclick="resetFilters()" style="padding: 0 15px; border-radius: 10px; background: rgba(207, 102, 121, 0.1); color: var(--red); border: 1px solid var(--red); cursor: pointer; font-weight: 600; font-size: 11px;">RESET</button>
             </div>
 
@@ -346,7 +349,67 @@ function updateDashboard() {
     document.getElementById('dash-count-referate').innerText = referateRest + " Dosare";
 }
 
-// LOGICA FILTRARE & RENDER (IDENTIC)
+// FUNCTIE EXPORT EXCEL (CSV UTF-8)
+function exportToExcel() {
+    if (dosare.length === 0) {
+        alert("Nu există date de exportat.");
+        return;
+    }
+
+    const header = [
+        "Nr. Dosar", "Instanta", "Clienti", "Telefon", "Calitate", "Cauza", 
+        "Tip Onorariu", "Ordonator", "Nr. Delegatie", "Data Delegatie", 
+        "Termen Initial", "Termen Nou", "Ora", "Apel", "Solutie", 
+        "Onorariu (RON)", "Incasat", "Data Incasare", "Ref. Facut", "Ref. Semnat", "Ref. Depus", "Arhivat", "Observatii"
+    ];
+
+    const rows = dosare.map(d => [
+        d.nr || "",
+        d.instanta || "",
+        d.clients ? d.clients.join('; ') : (d.client || ""),
+        d.telefon || "",
+        d.calitate || "",
+        d.cauza || "",
+        d.tiponorariu || "",
+        d.ordonator || "",
+        d.nrdelegatie || "",
+        d.datadelegatie || "",
+        d.termeninitial || "",
+        d.termennou || "",
+        d.ora || "",
+        d.apel || "",
+        d.solutie || "",
+        d.onorariu || "0",
+        d.incasat ? "DA" : "NU",
+        d.data_incasare || "",
+        d.ref_facut ? "DA" : "NU",
+        d.ref_semnat ? "DA" : "NU",
+        d.ref_depus ? "DA" : "NU",
+        d.arhivat ? "DA" : "NU",
+        (d.obs || "").replace(/\n/g, " ")
+    ]);
+
+    // Construire continut CSV cu separator virgula si ghilimele pentru a evita erorile la virgule in text
+    let csvContent = header.join(",") + "\n";
+    rows.forEach(row => {
+        let formattedRow = row.map(val => `"${String(val).replace(/"/g, '""')}"`);
+        csvContent += formattedRow.join(",") + "\n";
+    });
+
+    // Adaugam BOM (Byte Order Mark) pentru ca Excel sa recunoasca UTF-8 (diacriticele)
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Export_Dosare_${new Date().toLocaleDateString('ro-RO').replace(/\//g, '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// LOGICA FILTRARE & RENDER
 function setFilter(f) {
     currentFilter = f;
     document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
@@ -421,7 +484,7 @@ function renderDosare() {
     }).join('');
 }
 
-// LOGICA MODAL & FIREBASE (IDENTIC)
+// LOGICA MODAL & FIREBASE
 function openModal(idx) {
     editIdx = idx !== undefined ? idx : -1;
     const d = editIdx >= 0 ? dosare[editIdx] : {};
@@ -473,7 +536,7 @@ function showTab(t) {
     document.getElementById('tab-btn-incasari').classList.toggle('active', t === 'incasari');
 }
 
-// CALCULE FINANCIARE (IDENTIC)
+// CALCULE FINANCIARE
 function calculateFinance() {
     const selLuna = parseInt(document.getElementById('select-luna').value);
     const selAn = parseInt(document.getElementById('select-an').value);
@@ -508,7 +571,7 @@ function calculateFinance() {
     document.getElementById('monthly-dosare-list').innerHTML = listHTML || "<p style='text-align:center; padding:20px; color:var(--text3);'>Nicio încasare.</p>";
 }
 
-// GENERARE PDF (MODIFICATĂ)
+// GENERARE PDF
 function generatePDF(event) {
     const btn = event ? event.currentTarget : null;
     const originalText = btn ? btn.innerText : "";
@@ -525,7 +588,6 @@ function generatePDF(event) {
     clone.style.color = "#000000";
     clone.style.padding = "20px";
 
-    // Aplicare stiluri Printer Friendly
     clone.querySelectorAll('*').forEach(el => {
         el.style.color = "#000000";
         if (el.classList.contains('stat-card')) {
@@ -540,7 +602,6 @@ function generatePDF(event) {
         }
     });
 
-    // Header tip Tabel Oficial
     const header = document.createElement('div');
     header.style.marginBottom = "30px";
     header.innerHTML = `
@@ -562,7 +623,6 @@ function generatePDF(event) {
     `;
     clone.prepend(header);
 
-    // Footer pentru Semnătură
     const footer = document.createElement('div');
     footer.style.marginTop = "50px";
     footer.style.display = "flex";
